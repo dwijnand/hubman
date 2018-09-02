@@ -4,3 +4,7 @@ version = "0.1.0"
 authors = ["Dale Wijnand <dale.wijnand@gmail.com>"]
 
 [dependencies]
+hubcaps = "0.4.10"
+
+[patch.crates-io]
+hubcaps = { git = "https://github.com/dwijnand/hubcaps", branch = "conditional_requests" }
