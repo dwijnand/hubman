@@ -5,6 +5,10 @@ authors = ["Dale Wijnand <dale.wijnand@gmail.com>"]
 
 [dependencies]
 hubcaps = "0.4.10"
+hyper = "0.12"
+hyper-tls = "0.3"
+pretty_env_logger = "0.2"
+tokio = "0.1"
 
 [patch.crates-io]
 hubcaps = { git = "https://github.com/dwijnand/hubcaps", branch = "conditional_requests" }
