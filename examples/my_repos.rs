@@ -1,18 +1,11 @@
-extern crate hubcaps;
-extern crate hyper;
-extern crate hyper_tls;
-extern crate pretty_env_logger;
-extern crate tokio;
-
+use hubcaps::{Github, HttpCache, Result};
 use hyper::Client;
 use hyper::rt::Stream;
 use hyper_tls::HttpsConnector;
 use tokio::runtime::Runtime;
 
-use hubcaps::{Github, HttpCache, Result};
-
 fn main() -> Result<()> {
-    drop(pretty_env_logger::init());
+    pretty_env_logger::init();
 
     let mut rt = Runtime::new()?;
 
