@@ -14,4 +14,4 @@ pretty_env_logger = "0.3"
 tokio = "0.1"
 
 [patch.crates-io]
-hubcaps = { git = "https://github.com/dwijnand/hubcaps", branch = "fix-stream-caching" }
+hubcaps = { git = "https://github.com/dwijnand/hubcaps", branch = "hubman" }
