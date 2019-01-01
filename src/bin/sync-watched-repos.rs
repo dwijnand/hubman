@@ -6,7 +6,7 @@
 
 use std::env;
 
-use futures::Stream;
+use futures::{Future, Stream};
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use tokio::runtime::Runtime;
@@ -28,6 +28,17 @@ fn main() -> Result<()> {
         println!("{}", repo.full_name);
         Ok(())
     }))?;
+
+    let repos: Vec<(&str, &str)> = vec![
+    ];
+
+    for (owner, repo) in repos {
+        let full_repo = format!("{}/{}", owner, repo);
+        rt.block_on(github.activity().watching().unwatch_repo(owner, repo).and_then(move |()| {
+            println!("unwatched {}", full_repo);
+            Ok(())
+        }))?;
+    }
 
     Ok(())
 }
