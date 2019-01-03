@@ -5,8 +5,10 @@
 #![allow(unused_variables)]
 
 use std::env;
+use std::ops::Deref;
 
-use futures::{Future, Stream};
+use futures::prelude::*;
+use futures::{future, stream};
 use hubcaps::branches::Branch;
 use hubcaps::repositories::*;
 use hubcaps::{Credentials, Error, Github, HttpCache, Result};
@@ -32,30 +34,28 @@ fn main() -> Result<()> {
         )
         .filter(|r| r.fork);
 
-    my_forks.fold((), move |(), r| {
-        print!("https://github.com/{}/branches: ", r.full_name);
-
+    let my_forks_with_branches = my_forks.and_then(move |r| {
         let credentials = env::var("GITHUB_TOKEN").ok().map(Credentials::Token);
         let client = Client::builder().build(HttpsConnector::new(4).unwrap());
         let http_cache = HttpCache::in_home_dir();
         let github: Github<_> = Github::custom(host, agent, credentials, client, http_cache);
-        fn per_branch(b: Branch) {
+        let branches = github.repo(r.owner.login.deref(), r.name.deref()).branches().iter();
+        branches.collect().map(move |branches| (r, branches))
+    });
+
+    my_forks_with_branches.for_each(|(r, bs)| {
+        print!("https://github.com/{}/branches: ", r.full_name);
+        fn per_branch(b: &Branch) {
             let protected = match b.protected {
                 Some(true) => " (protected)",
                 Some(false) => "",
                 None => ""
             };
             print!("{}{}, ", b.name, protected);
-        }
-        github.repo(r.owner.login, r.name).branches().iter()
-            .fold((), |(), b| {
-                per_branch(b);
-                futures::future::ok::<(), Error>(())
-            })
-            .and_then(|()| {
-                println!();
-                futures::future::ok::<(), Error>(())
-            })
+        };
+        bs.iter().for_each(|b| per_branch(b));
+        println!();
+        Ok(())
     }).run();
 
     Ok(())
