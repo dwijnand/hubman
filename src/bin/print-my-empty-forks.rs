@@ -14,9 +14,11 @@ use hubcaps::repositories::*;
 use hubcaps::{Credentials, Error, Github, HttpCache, Result};
 use hyper::Client;
 use hyper_tls::HttpsConnector;
+use tokio::runtime::Runtime;
 
 fn main() -> Result<()> {
     pretty_env_logger::init();
+    let ref mut rt = Runtime::new()?;
 
     let host = "https://api.github.com";
     let agent = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
@@ -56,22 +58,17 @@ fn main() -> Result<()> {
         bs.iter().for_each(|b| per_branch(b));
         println!();
         Ok(())
-    }).run();
-
-    Ok(())
+    }).run(rt)
 }
 
 trait AsyncRun {
-    fn run(self);
+    fn run(self, rt: &mut Runtime) -> Result<()>;
 }
 
 impl<F> AsyncRun for F where
     F: Future<Item = (), Error = Error> + Send + 'static
 {
-    fn run(self) {
-        tokio::run(self.map_err(|err| {
-            eprintln!("Error: {}", err);
-            ()
-        }))
+    fn run(self, rt: &mut Runtime) -> Result<()> {
+        rt.block_on(self)
     }
 }
