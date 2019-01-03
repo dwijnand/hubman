@@ -46,17 +46,17 @@ fn main() -> Result<()> {
     });
 
     my_forks_with_branches.for_each(|(r, bs)| {
-        print!("https://github.com/{}/branches: ", r.full_name);
+        fn is_protected(b: &Branch) -> bool { b.protected == Some(true) }
         fn per_branch(b: &Branch) {
-            let protected = match b.protected {
-                Some(true) => " (protected)",
-                Some(false) => "",
-                None => ""
-            };
+            let protected = if is_protected(b) { " (protected)" } else { "" };
             print!("{}{}, ", b.name, protected);
         };
-        bs.iter().for_each(|b| per_branch(b));
-        println!();
+        if bs.len() == 1 {
+            let b = &bs[0];
+            if !is_protected(&b) && ["master", "z"].iter().any(|n| n == &b.name) {
+                println!("DELETE https://github.com/{}/branches: {}", r.full_name, b.name);
+            }
+        }
         Ok(())
     }).run(rt)
 }
