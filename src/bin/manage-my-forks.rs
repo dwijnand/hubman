@@ -26,6 +26,15 @@ fn github() -> Github<impl Clone + Connect + 'static> {
     Github::custom(host, agent, credentials, client, http_cache)
 }
 
+fn ok<T>(x: T) -> impl Future<Item = T, Error = Error> {
+    future::ok::<T, Error>(x)
+}
+
+fn box_ok<T: Send + 'static>(x: T) -> Box<Future<Item = T, Error = Error> + Send> {
+    Box::new(ok(x))
+}
+
+
 fn main() -> Result<()> {
     pretty_env_logger::init();
     let ref mut rt = Runtime::new()?;
@@ -47,30 +56,33 @@ fn main() -> Result<()> {
         branches.collect().map(move |branches| (r, branches))
     });
 
-    my_forks_with_branches
-        .for_each(move |(r, bs)| {
-            fn is_protected(b: &Branch) -> bool {
-                b.protected == Some(true)
-            }
-            fn per_branch(b: &Branch) {
-                let protected = if is_protected(b) { " (protected)" } else { "" };
-                print!("{}{}, ", b.name, protected);
-            };
-            if bs.len() == 1 {
-                let b = &bs[0];
-                if !is_protected(&b) && ["master", "z"].iter().any(|n| n == &b.name) {
-                    println!(
-                        "DELETE https://github.com/{}/branches: {}",
-                        r.full_name, b.name
-                    );
-                }
-            }
-            Ok(())
-        })
-        .run(rt)
+    my_forks_with_branches.and_then(move |(r, bs)| {
+        fn is_protected(b: &Branch) -> bool {
+            b.protected == Some(true)
+        }
+        fn per_branch(b: &Branch) {
+            let protected = if is_protected(b) { " (protected)" } else { "" };
+            print!("{}{}, ", b.name, protected);
+        };
+        if bs.len() == 1 && {
+            let b = &bs[0];
+            !is_protected(&b) && ["master", "z"].iter().any(|n| n == &b.name)
+        } {
+            println!("DELETING https://github.com/{}", r.full_name);
+            github().repo(r.owner.login.deref(), r.name.deref()).delete()
+        } else {
+            print!("https://github.com/{}/branches: {} ", r.full_name, bs.len());
+            bs.iter().for_each(|b| per_branch(b));
+            println!();
+            box_ok(())
+        }
+    }).run(rt)
 }
 
 trait AsyncRun {
+    fn run(self, rt: &mut Runtime) -> Result<()>;
+}
+trait AsyncRunStream {
     fn run(self, rt: &mut Runtime) -> Result<()>;
 }
 
@@ -80,5 +92,14 @@ where
 {
     fn run(self, rt: &mut Runtime) -> Result<()> {
         rt.block_on(self)
+    }
+}
+
+impl<S> AsyncRunStream for S
+where
+    S: Stream<Item = (), Error = Error> + Send + 'static,
+{
+    fn run(self, rt: &mut Runtime) -> Result<()> {
+        self.for_each(|()| Ok(())).run(rt)
     }
 }

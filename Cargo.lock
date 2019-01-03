@@ -307,7 +307,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "hubcaps"
 version = "0.5.0"
-source = "git+https://github.com/dwijnand/hubcaps?branch=hubman#1d1f4b1afa2c47ac916df672777c6d44932de5ad"
+source = "git+https://github.com/dwijnand/hubcaps?branch=hubman#5250fabec5c93629318812af0318cf61f625d1f1"
 dependencies = [
  "base64 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dirs 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
